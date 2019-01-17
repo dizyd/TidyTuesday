@@ -2,9 +2,7 @@
 title: "Tidy Tuesday - Space Launches"
 author: "David Izydorczyk"
 date: "17 Januar 2019"
-output: html_document
-editor_options: 
-  chunk_output_type: console
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
