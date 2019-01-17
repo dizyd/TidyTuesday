@@ -18,7 +18,6 @@ library(gganimate)
 
 space <- read.csv("../data/launches.csv")
 
-# space <- read.csv("C:/Users/Administrator/Google Drive/R/R Scripts/TidyTuesday/1) Space Launches/data/launches.csv")
 
 ```
 

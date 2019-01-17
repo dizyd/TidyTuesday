@@ -39,8 +39,6 @@ library(magrittr)
 library(gganimate)
 
 space <- read.csv("../data/launches.csv")
-
-# space <- read.csv("C:/Users/Administrator/Google Drive/R/R Scripts/TidyTuesday/1) Space Launches/data/launches.csv")
 ```
 
 Next, I am going to convert the data.frame into a tibble and inspect the data.
