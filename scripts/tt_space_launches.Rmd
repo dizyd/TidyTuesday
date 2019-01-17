@@ -1,0 +1,107 @@
+---
+title: "Tidy Tuesday - Space Launches"
+author: "David Izydorczyk"
+date: "17 Januar 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First, I start by loading the tidyverse library & the data. 
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(gganimate)
+
+space <- read.csv("../data/launches.csv")
+
+# space <- read.csv("C:/Users/Administrator/Google Drive/R/R Scripts/TidyTuesday/1) Space Launches/data/launches.csv")
+
+```
+
+Next, I am going to convert the data.frame into a tibble and inspect the data. 
+
+```{r}
+(space %<>% as_tibble())
+```
+
+
+First, I want to inspect the succes and failure rate over the years. 
+
+
+```{r}
+space %>% 
+  mutate(category_n = as.numeric(category)-1) %>%
+  select(launch_year,category_n) %>% 
+  group_by(launch_year) %>% 
+  summarize(success_rate = mean(category_n)) %>% 
+  ggplot(., aes(x = launch_year, y = success_rate))+ 
+   geom_line()
+  
+```
+
+We see a hugh increase in the succes rate over the years. Now lets see if there differences between the rocket types. However, as there are so many types I will just focus at the early years from, 1950 to 1970. Also I will focus only on the main type, deleting all additional main type information. Also lets first have a look on the frequencies of the main types. 
+
+```{r}
+space %>% 
+  mutate(category_n = as.numeric(category)-1) %>%
+  select(launch_year,category_n,type) %>% 
+  filter(launch_year > 1950 & launch_year < 1970) %>% 
+  mutate(type_d = gsub(" .*","",type)) %>% 
+  mutate(type_d = gsub("-.*","",type_d)) %$%
+  table(type_d)
+
+```
+We still have many different types. Therefore, lets only use those main types which have more than 100 entries. 
+
+```{r}
+space %>% 
+  mutate(category_n = as.numeric(category)-1) %>%
+  select(launch_year,category_n,type) %>% 
+  filter(launch_year > 1950 & launch_year < 1970) %>% 
+  mutate(type_d = gsub(" .*","",type)) %>% 
+  mutate(type_d = gsub("-.*","",type_d)) %>%
+  add_count(type_d) %>% 
+  filter(n > 100) %>% 
+  group_by(launch_year,type_d) %>% 
+  summarize(success_rate = mean(category_n)) %>% 
+  ggplot(., aes(x = launch_year, y = success_rate,color=type_d))+ 
+   geom_line()
+```
+
+Mhh this looks not very interesting. 
+
+Lets try to make a animated bubble chart showing the increase of succes rate per agency. 
+
+
+```{r}
+
+agencies <- c("US","AE","CN","RU","ILSK")
+
+space %>% 
+  mutate(category_n = as.numeric(category)-1) %>%
+  select(launch_year,category_n,agency) %>% 
+  filter(agency %in% agencies)  %>% 
+  group_by(launch_year,agency) %>% 
+  summarize(n_starts = length(category_n),
+            successes_rate = mean(category_n)) %>% 
+  filter(n_starts > 1) %>% 
+  ggplot(., aes(x = launch_year, y = successes_rate, color = agency, group=agency)) +  
+        geom_line() + 
+        geom_segment(aes(xend = 2019, yend = successes_rate), linetype = 2, colour = 'grey') + 
+        geom_point(size = 2) + 
+        geom_text(aes(x = 2020, label = agency), hjust = 0) + 
+  labs(x = 'Year', y = 'Success Rate ', title = "Succesrate for different agencies over the years") +
+  transition_reveal(launch_year) +
+  coord_cartesian(clip = 'off') + 
+  theme_minimal() 
+
+
+```
+
+
