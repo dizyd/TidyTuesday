@@ -1,0 +1,159 @@
+---
+title: "Tidy Tuesday - Incarceration Rate"
+author: "David Izydorczyk"
+date: "`r format(Sys.time(), "%a %b %d ")`"
+output: github_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First, I start by loading the tidyverse library & the data. 
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(gganimate)
+
+prison <- read.csv("../data/prison_population.csv")
+
+
+```
+
+Next, I am going to convert the data.frame into a tibble and inspect the data. 
+
+```{r}
+(prison %<>% as_tibble())
+```
+Plot the 15 states with the highest incarceration rates
+
+```{r}
+
+
+prison %>% 
+  mutate(lumped = fct_lump(state,25)) %>%
+  count(lumped, sort = TRUE) %>%
+  filter(lumped != "Other") %>%
+  mutate(state_lumped = fct_reorder(lumped,n)) %>%
+  ggplot(.,aes(x = state_lumped,y = n )) + 
+    geom_col()+
+    coord_flip() +
+    labs(x = "N",
+         y = "State")
+
+```
+
+We see that texas has the highest incarceration rate over of all states. 
+
+Lets have a look at the incarceration rate by urbanicity.
+
+```{r}
+prison %>% 
+  group_by(urbanicity) %>%
+  count()
+```
+
+Next, I want to see how the prison population changed of the years.
+
+```{r}
+theme_set(theme_light(),
+          base_size = 18)
+
+prison %>% 
+  filter(pop_category == "Total") %>%
+  group_by(year) %>%
+  summarize(prison_pop_m = mean(prison_population,na.rm=TRUE),
+            prison_pop_sd = sd(prison_population,na.rm=TRUE)) %>% 
+  ggplot(., aes(x = year, y = prison_pop_m)) +
+  geom_line() +
+  labs(x = "Year",
+       y = "Mean Prison Population")
+```
+
+Next we try a moving bubble charta ala "Factfullness" to see the development of prison population for different types. 
+
+
+```{r}
+theme_set(theme_light(base_size = 18))
+
+
+
+
+
+
+a <- prison %>% 
+  filter(year>=1990) %>%
+  group_by(year,pop_category) %>%
+  filter(pop_category == "Native American" |
+           pop_category == "Asian" |
+           pop_category == "Black" |
+           pop_category == "Latino"|
+           pop_category == "White") %>% 
+  summarize(prison_pop_m = mean(prison_population,na.rm=TRUE),
+            pop_size     = mean(population,na.rm=TRUE)) %>% 
+  filter(!is.nan(prison_pop_m)) %>%
+  ggplot(.,aes(x = year, y = prison_pop_m, color = pop_category, group = pop_category)) +
+    geom_line() + 
+    geom_segment(aes(xend = 2015, yend = prison_pop_m), linetype = 2, colour = 'grey') + 
+    geom_point(aes(x = year,size = pop_size)) + 
+    geom_text(aes(x = 2016, label = pop_category), hjust = 0) +
+    labs(x = 'Year',
+         y = 'Prison Population Size ',
+         title = "Development of the prison population size for different populations",
+         color = "Population Category",
+         size = "Population Size") +
+    transition_reveal(year) +
+    coord_cartesian(clip = 'off') 
+
+
+
+animate(a, height = 400, width =700,nframes=100)
+anim_save(filename ="../figures/tt_incarceration2.gif")
+```
+
+
+```{r}
+theme_set(theme_light(base_size = 17))
+
+library(tidyverse)
+library(magrittr)
+library(gganimate)
+
+prison <- read.csv("../data/prison_population.csv")
+
+states <- prison %>% 
+            group_by(state) %>%
+            summarize(prison_pop_m = mean(prison_population,na.rm=TRUE),
+                      pop_size     = mean(population,na.rm=TRUE)) %>%
+             top_n(n=5,wt = prison_pop_m) %>%
+             .$state  %>% as.character()
+
+
+a <- prison %>% 
+  filter(year>=1990) %>%
+  filter(state %in% states) %>% 
+   group_by(year,state) %>%
+  summarize(prison_pop_m = mean(prison_population,na.rm=TRUE),
+            pop_size     = mean(population,na.rm=TRUE)) %>% 
+  filter(!is.nan(prison_pop_m)) %>%
+  ggplot(.,aes(x = year, y = prison_pop_m, color = state, group = state)) +
+    geom_line() + 
+    geom_segment(aes(xend = 2015, yend = prison_pop_m), linetype = 2, colour = 'grey') + 
+    geom_point(aes(x = year,size = pop_size)) + 
+    geom_text(aes(x = 2016, label = state), hjust = 0) +
+    xlim(1990,2018) +
+    labs(x = 'Year',
+         y = 'Prison Population Size ',
+         title = "Development of the prison population size",
+         subtitle = " In the five states with the highest prison population size",
+         color = "State",
+         size = "Population Size") +
+    transition_reveal(year) +
+    coord_cartesian(clip = 'off') 
+
+
+
+animate(a, height = 400, width =700,nframes=100)
+anim_save(filename ="../figures/tt_incarceration2.gif")
+```
